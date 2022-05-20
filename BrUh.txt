@@ -1,0 +1,48 @@
+{
+  "sample1": {
+    "id": "sample1",
+    "spriteSheet": "BrUh.png",
+    "depth": 0,
+    "xPosition": 150,
+    "yPosition": 150,
+    "motionSequence": [
+      {
+        "frame": 4,
+        "durationMs": 1000
+      },
+      {
+        "frame": 2,
+        "durationMs": 500
+      },
+      {
+        "frame": 0,
+        "durationMs": 200
+      }
+    ],
+    "startTimeMs": 1653089308504,
+    "obj": {
+      "name": "",
+      "type": "Sprite",
+      "x": 150,
+      "y": 150,
+      "depth": 0,
+      "scale": {
+        "x": 1,
+        "y": 1
+      },
+      "origin": {
+        "x": 0.5,
+        "y": 0.5
+      },
+      "flipX": false,
+      "flipY": false,
+      "rotation": 0,
+      "alpha": 1,
+      "visible": true,
+      "blendMode": 0,
+      "textureKey": "BrUh.png",
+      "frameKey": 0,
+      "data": {}
+    }
+  }
+}
