@@ -3,181 +3,208 @@
         <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
         <script src="https://cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.min.js"></script>
         <script>
+            var spriteLoadQueue = [];
             var loadedSpriteSheets = [];
-            //z-index (depth), sprite sheet, frames, object, creation time, state
-            var nameSpriteStartTimeMs;
-            var frameAssembly = {
-                "id": "name",
-                "spriteSheet": "changingStar.png",
-                "depth": 1,
-                "motionSequence": [
+            var sprites = {};
+            function addToSpriteLoadQueue(id, spriteSheet, depth, xPosition, yPosition, motionSequence) {
+                spriteLoadQueue.push(
                     {
-                        "frame": 0,
-                        "durationMs": 700
-                    },
-                    {
-                        "frame": 1,
-                        "durationMs": 200
+                        "id": id,
+                        "spriteSheet": spriteSheet,
+                        "depth": depth,
+                        "xPosition": xPosition,
+                        "yPosition": yPosition,
+                        "motionSequence": motionSequence
                     }
-                    
-                ]
-            };
-            var game;
-            var nameSprite;
-            var battleOn;
-            const config = {
-                type: Phaser.CANVAS,
-                parent: "phaser-target",
-                backgroundColor: '#125555',
-                width: 300,
-                height: 300,
-                scene: {
-                    preload: preload,
-                    create: create,
-                    update: update
-                }
-            };
+                );
+            }
+            function preload() {
+            }
             $(document).ready(
                 () => {
-                    //console.log(0);
-                    game = new Phaser.Game(config);
-                }
-            );
-            function preload() {
-                //console.log(1 + " - " + Object.keys(game.scene.game));
-                //this.load.image(frameAssembly.id, frameAssembly.spriteSheet);
-                this.load.spritesheet(frameAssembly.id, frameAssembly.spriteSheet, {frameWidth: 200, frameHeight: 200});
-                //
-                battleOn = true;
-            }
-            function create() {
-                //console.log(2);
-                //this.add.sprite(150, 150, 'ghost', 'ghost');
-                nameSprite = this.add.sprite(150, 150, frameAssembly.id, frameAssembly.id, 0);
-                nameSprite.setFrame(frameAssembly.motionSequence[0].frame);
-                nameSpriteStartTimeMs = Date.now();
-            }
-            var alreadyUpdated = false;
-            function update() {
-                console.log("ZZZ game.load.image - " + this.load.spritesheet);
-                var currentTimeMs = Date.now();
-                var elapsedTimeMs = (currentTimeMs - nameSpriteStartTimeMs);
-                var totalMotionSequenceTimeMs = 0;
-                frameAssembly.motionSequence.forEach(
-                    (a) => {
-                        totalMotionSequenceTimeMs += a.durationMs;
-                    }
-                );
-                var frameOffsetMs = elapsedTimeMs%totalMotionSequenceTimeMs;
-                var selectedFrame = 0;
-                var accumulatedMs = 0;
-                frameAssembly.motionSequence.forEach(
-                    (a) => {
-                        accumulatedMs += a.durationMs;
-                        if (accumulatedMs < frameOffsetMs) {
-                            selectedFrame++;
-                        }
-                    }
-                );
-                nameSprite.setFrame(frameAssembly.motionSequence[selectedFrame].frame);
-                //if (!alreadyUpdated) {
-                //    alreadyUpdated = true;
-                //    updateOnce();
-                //}
-            }
-            function loadSpriteSheet(spriteSheetName, spriteSheetUrl, actionAfterImageLoads) {
-                if (loadedSpriteSheets.includes()) {
-                    game.load.spriteSheet(
-                        spriteSheetName, spriteSheetUrl, {frameWidth: 200, frameHeight: 200}
-                    );
-                }
-            }
-            /*
-            function updateOnce() {
-                executeWithMinimumDelay(
-                    new Promise((resolve, reject) => {console.log("Wait 5 seconds"); resolve(5000);}),
-                    100,
-                    (result) => {
-                        nameSprite.setFrame(1);
-                        executeWithMinimumDelay(
-                            new Promise((resolve, reject) => {resolve();}),
-                            100,
-                            (result) => {
-                                nameSprite.setFrame(2);
-                                executeWithMinimumDelay(
-                                    new Promise((resolve, reject) => {resolve();}),
-                                    100,
-                                    (result) => {
-                                        nameSprite.setFrame(3);
-                                        nameSprite.destroy();
-                                        //canvas, anims, scene
-                                        console.log("ZZZ game.scene - " + Object.keys(game.scene.game.anims));
-                                        //game.scene.cameras.main.fadeOut(5000, 0, 255, 0);
-                                    }
-                                );
-                            }
-                        );
-                        //console.log("Result2 -  " + result);
-                        //playAudio("data:audio/wav;base64,UklGRtEaAABXQVZFZm10IBAAAAABAAEARKwAAESsAAABAAgAZGF0Ya0aAAAAPUFFSU1RVVldYWVpbXF1eX2BhYmNkZWZnaGkqKywtLi8wMTHxMC8uLSwrKikoJyYlJCMiISAfHh0cGxoZWFdWVVRTUlFQT05Oj5CRkpOUVVZXWFlaW1xdXl9gYWJjZCUmJygpKissLS4vL/DxsO/u7ezr6uno6CcmJSQjIiEgHx4dHFtaWVhXVlVUU1KRkI+Ojs+QkZKTlJWWl5iZmltcXV5fYGFiYyQlJicoKSoq6+zt7u/w8XCvrq2s6+rp6Ofm5eUkIyIhIB8eHVxbWllYV1aVlJOSkZCPzs7P0NHS09SVlpeYmZqbnF1eX2BhYiMkJSYnJ+jp6uvs7a6vsLFwb66trKuqqajn5uXk4+MiISAfHl1cW1pZWJeWlZST0tHQz88PEBESEtPU1dbXmJmam5ydXl9gYWIjJCUmJufo6eqrrK2ur3BxMG9ubWxrqqmop6bl5OPjIiEgHx5dXFtaWZiXlpXU09LSERAPD1BREhMUFNXW19jZmpucnV5fYGEiIyQlJebn6Omqq6xtbm9wMPAvLi1sa2ppqKempeTj4uIhIB8eXVxbWpmYl9bV1NQTEhEQT0+QUVJTVBUWFtfY2dqbnJ2eX2BhIiMkJOXm56ipqqtsbW4vMDCv7u4tLCtqaWhnpqWk4+LiISAfHl1cW5qZmNfW1hUUE1JRUE+PkJGSU1RVFhcYGNna25ydnl9gYSIjI+Tl5qeoqWprbC0uLu/wb67t7OwrKiloZ2alpKPi4eEgHx5dXJuamdjX1xYVFFNSUZCPz9DRkpOUVVZXGBkZ2tucnZ5fYGEiIyPk5aanqGlqayws7e7vsG+urazr6yopKGdmZaSj4uHhIB9eXVybmpnY2BcWFVRTkpHQz9AQ0dLTlJVWV1gZGhrb3J2eX2BhIiLj5OWmp2hpaisr7O2ur3Avbm2sq+rp6SgnZmWko6Lh4SAfXl1cm5rZ2RgXFlVUk5LR0RAQURIS09SVlpdYWRoa29ydnp9gYSIi4+SlpmdoaSoq6+ytrm9v7y5tbKuq6ejoJyZlZKOi4eEgH15dnJua2dkYF1ZVlJPS0hEQUFFSExPU1ZaXmFlaGxvc3Z6fYGEiIuPkpaZnaCkp6uusrW5vL68uLWxrqqno6CcmZWSjouHhIB9eXZyb2toZGFdWlZTT0xJRUJCRklNUFNXWl5hZWhsb3N2en2BhIiLjpKVmZygo6eqrrG0uLu+u7e0sK2qpqOfnJiVkY6Kh4SAfXl2cm9raGVhXlpXU1BNSUZCQ0ZKTVFUV1teYmVpbG9zdnp9gYSHi46SlZmcn6Omqq2wtLe7vbq3s7Csqaain5uYlZGOioeDgH15dnNvbGhlYl5bV1RRTUpHQ0RHSk5RVVhbX2JmaWxwc3Z6fYGEh4uOkZWYnJ+ipqmssLO2ury5trOvrKilop6bmJSRjoqHg4B9eXZzb2xpZWJfW1hVUU5LR0RESEtOUlVYXF9jZmltcHN3en2BhIeLjpGVmJufoqWprK+ytrm7ubWyr6uopaGem5eUkY2Kh4OAfXl2c3BsaWZiX1xYVVJPS0hFRUhMT1JWWVxgY2ZpbXBzd3p9gYSHio6RlJibnqGlqKuvsrW4u7i1sa6rp6ShnpqXlJCNioeDgH16dnNwbGlmY19cWVZST0xJRUZJTFBTVlldYGNnam1wdHd6fYGEh4qOkZSXm56hpKerrrG0uLq3tLGtqqekoJ2al5OQjYqHg4B9enZzcG1pZmNgXVlWU1BNSUZHSk1QVFdaXWBkZ2ptcHR3en2BhIeKjZGUl5qdoaSnqq2wtLe5trOwraqmo6CdmpaTkI2KhoOAfXp3c3BtamdjYF1aV1RQTUpHR0tOUVRXWl5hZGdqbnF0d3p9gYSHio2Qk5eanaCjpqqtsLO2uLazr6yppqOgnJmWk5CNiYaDgH16d3NwbWpnZGFeWldUUU5LSEhLTlJVWFteYWRna25xdHd6fYGEh4qNkJOWmZ2go6aprK+ytbi1sq+sqKWin5yZlpOQjImGg4B9end0cW1qZ2RhXltYVVJPTEhJTE9SVVhbX2JlaGtucXR3en2BhIeKjZCTlpmcn6KlqKuvsrW3tLGuq6ilop+cmZWSj4yJhoOAfXp3dHFua2hlYl5bWFVST0xJSk1QU1ZZXF9iZWhrbnF0d3p9gISHio2Qk5aZnJ+ipairrrG0trSwraqnpKGem5iVko+MiYaDgH16d3RxbmtoZWJfXFlWU1BNSkpNUFNWWVxfYmVoa25xdHd6fYCDhomMj5KVmJueoaSnqq2ws7WzsK2qp6ShnpuYlZKPjImGg4B9end0cW5raGViX1xZV1RRTktLTlFUV1pdYGNmaWxvcnV4e36Ag4aJjI+SlZibnqGkp6qtsLK0sq+sqaajoJ2amJWSj4yJhoOAfXp3dHFubGlmY2BdWldUUU5LTE9SVVhbXWBjZmlsb3J1eHt+gIOGiYyPkpWYm52go6aprK+ytLGuq6mmo6CdmpeUkY6MiYaDgH16d3Ryb2xpZmNgXVtYVVJPTE1QUlVYW15hZGdpbG9ydXh7foCDhomMj5KUl5qdoKOmqKuusbOxrquopaKfnZqXlJGOi4mGg4B9end1cm9saWZkYV5bWFVTUE1NUFNWWVxeYWRnam1vcnV4e36Ag4aJjI+RlJeanZ+ipairrbCysK2qp6Win5yZlpSRjouIhoOAfXp4dXJvbGpnZGFeXFlWU1FOTlFUV1lcX2JlZ2ptcHJ1eHt+gIOGiYyOkZSXmZyfoqSnqq2vsa+sqqekoZ6cmZaTkY6LiIaDgH16eHVyb21qZ2RiX1xZV1RRT09SVFdaXV9iZWhqbXBzdXh7foCDhomLjpGUlpmcnqGkp6msr7GurKmmo6Gem5iWk5COi4iFg4B9e3h1cnBtamhlYl9dWldVUk9QUlVYW11gY2Voa21wc3Z4e36Ag4aIi46Rk5aZm56ho6apq66wrquopqOgnZuYlZOQjYuIhYOAfXt4dXNwbWtoZWNgXVtYVVNQUFNWWFteYGNmaGtucHN2eHt+gIOGiIuOkJOWmJudoKOlqKutr62qqKWioJ2amJWSkI2LiIWDgH17eHVzcG5raGZjYF5bWVZTUVFUVllcXmFkZmlrbnFzdnl7foCDhoiLjZCTlZianaCipaeqra6sqqekop+dmpeVkpCNioiFg4B9e3h2c3Bua2lmZGFeXFlXVFJSVFdaXF9hZGdpbG5xc3Z5e36Ag4WIi42QkpWXmp2foqSnqayuq6mmpKGfnJmXlJKPjYqIhYKAfXt4dnNxbmxpZ2RhX1xaV1VSU1VYWl1fYmRnamxvcXR2eXt+gIOFiIqNj5KUl5qcn6GkpqmrrauopqOhnpyZl5SSj4yKh4WCgH17eHZzcW5saWdkYl9dW1hWU1NWWFtdYGJlZ2psb3F0dnl7foCDhYiKjY+SlJeZnJ6go6Woqqyqp6WjoJ6bmZaUkY+MioeFgoB9e3l2dHFvbGpnZWJgXltZVlRUV1lcXmBjZWhqbW9ydHd5e36Ag4WIioyPkZSWmZudoKKlp6qrqaekop+dm5iWk5GOjIqHhYKAfnt5dnRxb21qaGVjYV5cWVdVVVdaXF9hY2Zoa21vcnR3eXt+gIOFh4qMj5GTlpibnZ+ipKapqqmmpKGfnZqYlZORjoyJh4WCgH57eXZ0cm9ta2hmY2FfXFpYVVZYWl1fYmRmaWttcHJ0d3l8foCDhYeKjI6Rk5WYmpyfoaOmqKqopaOhnpyal5WTkI6MiYeFgoB+e3l3dHJwbWtpZmRiX11bWFZWWVtdYGJkZ2lrbnBydXd5fH6Ag4WHiYyOkJOVl5qcnqCjpaepp6WioJ6bmZeVkpCOi4mHhIKAfnt5d3RycG5raWdkYmBeW1lXV1lcXmBjZWdpbG5wc3V3eXx+gIOFh4mMjpCSlZeZm56goqSnqKakoqCdm5mWlJKQjYuJh4SCgH57eXd1cnBubGlnZWNhXlxaWFhaXF9hY2VoamxucXN1d3p8foCChYeJi46QkpSWmZudn6Gkpqemo6GfnZqYlpSSj42LiYeEgoB+e3l3dXNwbmxqaGZjYV9dW1hZW11fYWRmaGpsb3FzdXd6fH6AgoWHiYuNj5KUlpianJ+ho6WnpaOgnpyamJaTkY+Ni4mGhIKAfnx5d3VzcW9samhmZGJgXVtZWVxeYGJkZmlrbW9xc3V4enx+gIKEh4mLjY+Rk5aYmpyeoKKkpqSioJ6cmZeVk5GPjYqIhoSCgH58end1c3FvbWtpZ2RiYF5cWlpcXmFjZWdpa21vcXR2eHp8foCChIaJi42PkZOVl5mbnaCipKWjoZ+dm5mXlZORjoyKiIaEgoB+fHp4dXNxb21raWdlY2FfXVtbXV9hY2VnaWxucHJ0dnh6fH6AgoSGiIqMj5GTlZeZm52foaOko6GfnJqYlpSSkI6MioiGhIKAfnx6eHZ0cnBubGpoZWNhX11bXF5gYmRmaGpsbnBydHZ4enx+gIKEhoiKjI6QkpSWmJqcnqCipKKgnpyamJaUkpCOjIqIhoSCgH58enh2dHJwbmxqaGZkYmBeXFxeYGJkZmhqbG5wcnR2eHp8foCChIaIioyOkJKUlpianJ6goaOhn52bmZeVk5GPjoyKiIaEgoB+fHp4dnRycG5samlnZWNhX11dX2FjZWdpa21vcXN1dnh6fH6AgoSGiIqMjpCRk5WXmZudn6GioJ+dm5mXlZORj42LiYeGhIKAfnx6eHZ0c3FvbWtpZ2VjYWBeXmBiZGZnaWttb3FzdXd5enx+gIKEhoiKi42PkZOVl5manJ6goaCenJqYlpSTkY+Ni4mHhYSCgH58enh3dXNxb21ramhmZGJgXl9hYmRmaGpsbm9xc3V3eXt8foCChIaHiYuNj5GSlJaYmpydn6GfnZuZmJaUkpCOjYuJh4WDgoB+fHp5d3VzcW9ubGpoZmVjYV9fYWNlZ2lqbG5wcnN1d3l7fH6AgoSFh4mLjY6QkpSWl5mbnZ+gnpybmZeVk5KQjoyLiYeFg4KAfnx6eXd1c3JwbmxraWdlY2JgYGJkZmdpa21ucHJ0dXd5e31+gIKEhYeJi4yOkJKTlZeZmpyen56cmpiXlZORj46MiomHhYOCgH58e3l3dXRycG5ta2loZmRiYWFjZGdpa21ucHJ0dnh6fH6AgYOFh4mLjY+QkpSWmJqcnp6cmpiWlJKRj42LiYeFg4KAfnx6eHZ1c3FvbWtpaGZkYmFjZWdpa2xucHJ0dnh6e31/gYOFhoiKjI6QkZOVl5mbnJ2cmpiWlJORj42LiYeGhIKAfn17eXd1c3JwbmxqaWdlY2JjZWdpa2xucHJ0dnd5e31/gIKEhoiJi42PkZKUlpiam52cmpiWlJORj42LioiGhIKBf317eXh2dHJxb21raWhmZGNkZWdpa2xucHJ0dXd5e3x+gIKDhYeJi4yOkJKTlZeZmpybmpiWlJORj42MioiGhIOBf358enh3dXNxcG5samlnZWRkZmdpa2xucHJzdXd5enx+gIGDhYaIioyNj5GSlJaXmZubmZiWlJKRj42MioiHhYOBgH58e3l3dnRycG9ta2poZmVkZmdpa21ucHJzdXd4enx9f4GChIaHiYuMjpCRk5WWmJqbmZeWlJKRj42MioiHhYOCgH59e3l4dnVzcXBubGtpZ2ZlZmhpa21ucHJzdXZ4ent9f4CChIWHiIqMjY+RkpSVl5mamZeWlJKRj42MiomHhYSCgH99fHp4d3V0cnBvbWxqaGdlZmhpa21ucHJzdXZ4ent9foCCg4WGiImLjY6QkZOVlpiZmZeVlJKRj42MiomHhoSCgX9+fHt5d3Z0c3Fwbm1raWhmZ2hqa21ucHFzdXZ4eXt8foCBg4SGh4mKjI2PkJKUlZeYmJeVlJKRj46MiomHhoSDgYB+fXt6eHd1c3Jwb21samlnZ2hqa21ucHFzdXZ4eXt8fn+BgoSFh4iKi42OkJGTlJaXmJeVlJKQj42MiomIhoWDgoB/fXx6eXd2dHNxcG5ta2poZ2lqbG1vcHJzdHZ3eXp8fX+AgoOFhoiJioyNj5CSk5WWl5aVk5KQj42Mi4mIhoWDgoB/fXx7eXh2dXNycW9ubGtpaGlqbG1vcHJzdHZ3eXp8fX6AgYOEhoeIiouNjo+RkpSVlpaVk5KQj42Mi4mIhoWEgoF/fn17enh3dnRzcXBvbWxqaWlrbG1vcHJzdHZ3eXp7fX6AgYKEhYaIiYuMjY+QkZOUlZaUk5GQj42Mi4mIhoWEgoGAfn18enl4dnVzcnFvbm1ramprbG5vcHJzdHZ3eHp7fH5/gYKDhYaHiYqLjY6PkJKTlJWUk5GQj42Mi4mIh4WEg4GAf318e3l4d3V0c3Jwb25sa2prbW5vcXJzdHZ3eHp7fH5/gIGDhIWHiImKjI2OkJGSk5SUkpGQjo2Mi4mIh4WEg4KAf358e3p5d3Z1dHJxcG9tbGtsbW5vcXJzdHZ3eHp7fH1/gIGChIWGh4mKi4yOj5CRkpSTkpGPjo2MiomIh4aEg4KBf359fHp5eHd2dHNycW9ubWxsbW5wcXJzdXZ3eHl7fH1+gIGCg4SGh4iJioyNjo+QkpOTkpCPjo2MiomIh4aEg4KBgH59fHt6eXd2dXRzcXBvbm1sbm9wcXJzdXZ3eHl7fH1+f4CCg4SFhoeJiouMjY6PkZKSkZCPjo2LiomIh4aFg4KBgH9+fHt6eXh3dnVzcnFwb25tbm9wcXJ0dXZ3eHl6fH1+f4CBgoOFhoeIiYqLjI2PkJGSkZCPjoyLiomIh4aFhIKBgH9+fXx7enh3dnV0c3JxcG9ubm9wcnN0dXZ3eHl6e31+f4CBgoOEhYaHiImLjI2Oj5CRkY+OjYyLiomIh4aFhIOBgH9+fXx7enl4d3Z1dHNycXBvb3BxcnN0dXZ3eHl6e3x9foCBgoOEhYaHiImKi4yNjo+QkI+OjYyLiomIh4aFhIOCgYB/fn18e3p5eHZ1dHNycXBvb3BxcnN0dXZ3eHl6e3x9fn+AgYKDhIWGh4iJiouMjY6PkI+OjYyLiomIh4aFhIOCgYB/fn18e3p5eHd2dXRzcnFwcHFycnN0dXZ3eHl6e3x9fn+AgYKDhIWGh4iJiYqLjI2Oj46NjIuKiYmIh4aFhIOCgYB/fn18e3p6eXh3dnV0c3JxcHFyc3R1dnd3eHl6e3x9fn+AgYKCg4SFhoeIiYqLi4yNjo6NjIuKiYiHh4aFhIOCgYB/fn59fHt6eXh3d3Z1dHNycXFyc3R1dnd4eXl6e3x9fn+AgIGCg4SFhoaHiImKi4yMjY2MjIuKiYiHhoaFhIOCgYCAf359fHt7enl4d3Z2dXRzcnJzdHR1dnd4eXl6e3x9fn5/gIGCg4OEhYaHiIiJiouMjI2Mi4qKiYiHhoWFhIOCgYGAf359fXx7enl5eHd2dXV0c3NzdHV2dnd4eXp6e3x9fn5/gIGBgoOEhYWGh4iIiYqLjIyMi4qJiIiHhoWFhIOCgoGAf35+fXx7e3p5eHh3dnV1dHN0dHV2d3d4eXp6e3x9fX5/gICBgoODhIWGhoeIiImKi4uLioqJiIeHhoWEhIOCgoGAf39+fX18e3p6eXh4d3Z1dXR0dXZ2d3h4eXp7e3x9fX5/gICBgoKDhISFhoaHiIiJiouLiomJiIeGhoWEhIOCgoGAgH9+fn18fHt6enl4eHd2dnV1dXZ3d3h5eXp7e3x9fX5/f4CBgYKDg4SFhYaGh4iIiYqKiYmIh4eGhoWEhIOCgoGAgH9+fn19fHt7enl5eHh3dnZ1dnZ3eHh5enp7e3x9fX5/f4CAgYKCg4OEhYWGhoeIiImJiYiIh4aGhYWEg4OCgoGAgH9/fn19fHx7e3p5eXh4d3d2dnd4eHl5enp7fHx9fX5/f4CAgYGCgoOEhIWFhoaHiIiJiIiHh4aGhYSEg4OCgoGBgH9/fn59fXx8e3t6eXl4eHd3d3d4eXl6ent7fHx9fX5+f4CAgYGCgoODhISFhYaGh4eIiIeHhoaFhYSEg4OCgoGBgIB/f35+fX18fHt7enp5eXh4d3h4eXl6ent7fHx9fX5+f3+AgIGBgoKDg4SEhYWGhoeHh4eGhoWFhISDg4KCgoGBgIB/f35+fX18fHx7e3p6eXl4eHh5eXp6e3t8fH19fX5+f3+AgIGBgYKCg4OEhIWFhYaGh4aGhYWEhISDg4KCgYGBgIB/f35+fn19fHx8e3t6enp5eXl5enp7e3x8fH19fn5+f3+AgICBgYKCgoODhISEhYWFhoaFhYSEhIODg4KCgYGBgIB/f39+fn59fXx8fHt7e3p6enp6ent7e3x8fX19fn5+f3+AgICBgYGCgoKDg4OEhISFhYWFhISEg4ODgoKCgYGBgICAf39/fn5+fX19fHx8e3t7enp7e3t8fHx9fX1+fn5+f39/gICAgYGBgoKCg4ODg4SEhISEhISDg4OCgoKBgYGAgICAf39/fn5+fn19fXx8fHx7e3t7e3x8fH19fX1+fn5/f39/gICAgIGBgYKCgoKDg4ODhISEg4ODg4KCgoGBgYGAgICAf39/f35+fn59fX19fHx8fHx8fHx8fX19fX5+fn5/f39/gICAgICBgYGBgoKCgoKDg4ODg4OCgoKCgYGBgYGAgICAf39/f39+fn5+fn19fX19fHx8fX19fX1+fn5+fn9/f39/gICAgICAgYGBgYGBgoKCgoKCgoKCgoGBgYGBgYCAgICAgH9/f39/f35+fn5+fn19fX19fX19fn5+fn5+f39/f39/f4CAgICAgICBgYGBgYGBgoKCgoGBgYGBgYGAgICAgICAgH9/f39/f39/fn5+fn5+fn5+fn5+fn5+fn9/f39/f39/f4CAgICAgICAgICBgYGBgYGBgYGBgYGAgICAgICAgICAgH9/f39/f39/f39/f39/fn5+fn5/f39/f39/f39/f39/f4CAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgH9/f39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f4CAgICAgICAgICAgICAgICAgICAgICAgICAgICA");
-                        //playAudio("data:audio/wav;base64,UklGRtEaAABXQVZFZm10IBAAAAABAAEARKwAAESsAAABAAgAZGF0Ya0aAAAAPUFFSU1RVVldYWVpbXF1eX2BhYmNkZWZnaGkqKywtLi8wMTHxMC8uLSwrKikoJyYlJCMiISAfHh0cGxoZWFdWVVRTUlFQT05Oj5CRkpOUVVZXWFlaW1xdXl9gYWJjZCUmJygpKissLS4vL/DxsO/u7ezr6uno6CcmJSQjIiEgHx4dHFtaWVhXVlVUU1KRkI+Ojs+QkZKTlJWWl5iZmltcXV5fYGFiYyQlJicoKSoq6+zt7u/w8XCvrq2s6+rp6Ofm5eUkIyIhIB8eHVxbWllYV1aVlJOSkZCPzs7P0NHS09SVlpeYmZqbnF1eX2BhYiMkJSYnJ+jp6uvs7a6vsLFwb66trKuqqajn5uXk4+MiISAfHl1cW1pZWJeWlZST0tHQz88PEBESEtPU1dbXmJmam5ydXl9gYWIjJCUmJufo6eqrrK2ur3BxMG9ubWxrqqmop6bl5OPjIiEgHx5dXFtaWZiXlpXU09LSERAPD1BREhMUFNXW19jZmpucnV5fYGEiIyQlJebn6Omqq6xtbm9wMPAvLi1sa2ppqKempeTj4uIhIB8eXVxbWpmYl9bV1NQTEhEQT0+QUVJTVBUWFtfY2dqbnJ2eX2BhIiMkJOXm56ipqqtsbW4vMDCv7u4tLCtqaWhnpqWk4+LiISAfHl1cW5qZmNfW1hUUE1JRUE+PkJGSU1RVFhcYGNna25ydnl9gYSIjI+Tl5qeoqWprbC0uLu/wb67t7OwrKiloZ2alpKPi4eEgHx5dXJuamdjX1xYVFFNSUZCPz9DRkpOUVVZXGBkZ2tucnZ5fYGEiIyPk5aanqGlqayws7e7vsG+urazr6yopKGdmZaSj4uHhIB9eXVybmpnY2BcWFVRTkpHQz9AQ0dLTlJVWV1gZGhrb3J2eX2BhIiLj5OWmp2hpaisr7O2ur3Avbm2sq+rp6SgnZmWko6Lh4SAfXl1cm5rZ2RgXFlVUk5LR0RAQURIS09SVlpdYWRoa29ydnp9gYSIi4+SlpmdoaSoq6+ytrm9v7y5tbKuq6ejoJyZlZKOi4eEgH15dnJua2dkYF1ZVlJPS0hEQUFFSExPU1ZaXmFlaGxvc3Z6fYGEiIuPkpaZnaCkp6uusrW5vL68uLWxrqqno6CcmZWSjouHhIB9eXZyb2toZGFdWlZTT0xJRUJCRklNUFNXWl5hZWhsb3N2en2BhIiLjpKVmZygo6eqrrG0uLu+u7e0sK2qpqOfnJiVkY6Kh4SAfXl2cm9raGVhXlpXU1BNSUZCQ0ZKTVFUV1teYmVpbG9zdnp9gYSHi46SlZmcn6Omqq2wtLe7vbq3s7Csqaain5uYlZGOioeDgH15dnNvbGhlYl5bV1RRTUpHQ0RHSk5RVVhbX2JmaWxwc3Z6fYGEh4uOkZWYnJ+ipqmssLO2ury5trOvrKilop6bmJSRjoqHg4B9eXZzb2xpZWJfW1hVUU5LR0RESEtOUlVYXF9jZmltcHN3en2BhIeLjpGVmJufoqWprK+ytrm7ubWyr6uopaGem5eUkY2Kh4OAfXl2c3BsaWZiX1xYVVJPS0hFRUhMT1JWWVxgY2ZpbXBzd3p9gYSHio6RlJibnqGlqKuvsrW4u7i1sa6rp6ShnpqXlJCNioeDgH16dnNwbGlmY19cWVZST0xJRUZJTFBTVlldYGNnam1wdHd6fYGEh4qOkZSXm56hpKerrrG0uLq3tLGtqqekoJ2al5OQjYqHg4B9enZzcG1pZmNgXVlWU1BNSUZHSk1QVFdaXWBkZ2ptcHR3en2BhIeKjZGUl5qdoaSnqq2wtLe5trOwraqmo6CdmpaTkI2KhoOAfXp3c3BtamdjYF1aV1RQTUpHR0tOUVRXWl5hZGdqbnF0d3p9gYSHio2Qk5eanaCjpqqtsLO2uLazr6yppqOgnJmWk5CNiYaDgH16d3NwbWpnZGFeWldUUU5LSEhLTlJVWFteYWRna25xdHd6fYGEh4qNkJOWmZ2go6aprK+ytbi1sq+sqKWin5yZlpOQjImGg4B9end0cW1qZ2RhXltYVVJPTEhJTE9SVVhbX2JlaGtucXR3en2BhIeKjZCTlpmcn6KlqKuvsrW3tLGuq6ilop+cmZWSj4yJhoOAfXp3dHFua2hlYl5bWFVST0xJSk1QU1ZZXF9iZWhrbnF0d3p9gISHio2Qk5aZnJ+ipairrrG0trSwraqnpKGem5iVko+MiYaDgH16d3RxbmtoZWJfXFlWU1BNSkpNUFNWWVxfYmVoa25xdHd6fYCDhomMj5KVmJueoaSnqq2ws7WzsK2qp6ShnpuYlZKPjImGg4B9end0cW5raGViX1xZV1RRTktLTlFUV1pdYGNmaWxvcnV4e36Ag4aJjI+SlZibnqGkp6qtsLK0sq+sqaajoJ2amJWSj4yJhoOAfXp3dHFubGlmY2BdWldUUU5LTE9SVVhbXWBjZmlsb3J1eHt+gIOGiYyPkpWYm52go6aprK+ytLGuq6mmo6CdmpeUkY6MiYaDgH16d3Ryb2xpZmNgXVtYVVJPTE1QUlVYW15hZGdpbG9ydXh7foCDhomMj5KUl5qdoKOmqKuusbOxrquopaKfnZqXlJGOi4mGg4B9end1cm9saWZkYV5bWFVTUE1NUFNWWVxeYWRnam1vcnV4e36Ag4aJjI+RlJeanZ+ipairrbCysK2qp6Win5yZlpSRjouIhoOAfXp4dXJvbGpnZGFeXFlWU1FOTlFUV1lcX2JlZ2ptcHJ1eHt+gIOGiYyOkZSXmZyfoqSnqq2vsa+sqqekoZ6cmZaTkY6LiIaDgH16eHVyb21qZ2RiX1xZV1RRT09SVFdaXV9iZWhqbXBzdXh7foCDhomLjpGUlpmcnqGkp6msr7GurKmmo6Gem5iWk5COi4iFg4B9e3h1cnBtamhlYl9dWldVUk9QUlVYW11gY2Voa21wc3Z4e36Ag4aIi46Rk5aZm56ho6apq66wrquopqOgnZuYlZOQjYuIhYOAfXt4dXNwbWtoZWNgXVtYVVNQUFNWWFteYGNmaGtucHN2eHt+gIOGiIuOkJOWmJudoKOlqKutr62qqKWioJ2amJWSkI2LiIWDgH17eHVzcG5raGZjYF5bWVZTUVFUVllcXmFkZmlrbnFzdnl7foCDhoiLjZCTlZianaCipaeqra6sqqekop+dmpeVkpCNioiFg4B9e3h2c3Bua2lmZGFeXFlXVFJSVFdaXF9hZGdpbG5xc3Z5e36Ag4WIi42QkpWXmp2foqSnqayuq6mmpKGfnJmXlJKPjYqIhYKAfXt4dnNxbmxpZ2RhX1xaV1VSU1VYWl1fYmRnamxvcXR2eXt+gIOFiIqNj5KUl5qcn6GkpqmrrauopqOhnpyZl5SSj4yKh4WCgH17eHZzcW5saWdkYl9dW1hWU1NWWFtdYGJlZ2psb3F0dnl7foCDhYiKjY+SlJeZnJ6go6Woqqyqp6WjoJ6bmZaUkY+MioeFgoB9e3l2dHFvbGpnZWJgXltZVlRUV1lcXmBjZWhqbW9ydHd5e36Ag4WIioyPkZSWmZudoKKlp6qrqaekop+dm5iWk5GOjIqHhYKAfnt5dnRxb21qaGVjYV5cWVdVVVdaXF9hY2Zoa21vcnR3eXt+gIOFh4qMj5GTlpibnZ+ipKapqqmmpKGfnZqYlZORjoyJh4WCgH57eXZ0cm9ta2hmY2FfXFpYVVZYWl1fYmRmaWttcHJ0d3l8foCDhYeKjI6Rk5WYmpyfoaOmqKqopaOhnpyal5WTkI6MiYeFgoB+e3l3dHJwbWtpZmRiX11bWFZWWVtdYGJkZ2lrbnBydXd5fH6Ag4WHiYyOkJOVl5qcnqCjpaepp6WioJ6bmZeVkpCOi4mHhIKAfnt5d3RycG5raWdkYmBeW1lXV1lcXmBjZWdpbG5wc3V3eXx+gIOFh4mMjpCSlZeZm56goqSnqKakoqCdm5mWlJKQjYuJh4SCgH57eXd1cnBubGlnZWNhXlxaWFhaXF9hY2VoamxucXN1d3p8foCChYeJi46QkpSWmZudn6Gkpqemo6GfnZqYlpSSj42LiYeEgoB+e3l3dXNwbmxqaGZjYV9dW1hZW11fYWRmaGpsb3FzdXd6fH6AgoWHiYuNj5KUlpianJ+ho6WnpaOgnpyamJaTkY+Ni4mGhIKAfnx5d3VzcW9samhmZGJgXVtZWVxeYGJkZmlrbW9xc3V4enx+gIKEh4mLjY+Rk5aYmpyeoKKkpqSioJ6cmZeVk5GPjYqIhoSCgH58end1c3FvbWtpZ2RiYF5cWlpcXmFjZWdpa21vcXR2eHp8foCChIaJi42PkZOVl5mbnaCipKWjoZ+dm5mXlZORjoyKiIaEgoB+fHp4dXNxb21raWdlY2FfXVtbXV9hY2VnaWxucHJ0dnh6fH6AgoSGiIqMj5GTlZeZm52foaOko6GfnJqYlpSSkI6MioiGhIKAfnx6eHZ0cnBubGpoZWNhX11bXF5gYmRmaGpsbnBydHZ4enx+gIKEhoiKjI6QkpSWmJqcnqCipKKgnpyamJaUkpCOjIqIhoSCgH58enh2dHJwbmxqaGZkYmBeXFxeYGJkZmhqbG5wcnR2eHp8foCChIaIioyOkJKUlpianJ6goaOhn52bmZeVk5GPjoyKiIaEgoB+fHp4dnRycG5samlnZWNhX11dX2FjZWdpa21vcXN1dnh6fH6AgoSGiIqMjpCRk5WXmZudn6GioJ+dm5mXlZORj42LiYeGhIKAfnx6eHZ0c3FvbWtpZ2VjYWBeXmBiZGZnaWttb3FzdXd5enx+gIKEhoiKi42PkZOVl5manJ6goaCenJqYlpSTkY+Ni4mHhYSCgH58enh3dXNxb21ramhmZGJgXl9hYmRmaGpsbm9xc3V3eXt8foCChIaHiYuNj5GSlJaYmpydn6GfnZuZmJaUkpCOjYuJh4WDgoB+fHp5d3VzcW9ubGpoZmVjYV9fYWNlZ2lqbG5wcnN1d3l7fH6AgoSFh4mLjY6QkpSWl5mbnZ+gnpybmZeVk5KQjoyLiYeFg4KAfnx6eXd1c3JwbmxraWdlY2JgYGJkZmdpa21ucHJ0dXd5e31+gIKEhYeJi4yOkJKTlZeZmpyen56cmpiXlZORj46MiomHhYOCgH58e3l3dXRycG5ta2loZmRiYWFjZGdpa21ucHJ0dnh6fH6AgYOFh4mLjY+QkpSWmJqcnp6cmpiWlJKRj42LiYeFg4KAfnx6eHZ1c3FvbWtpaGZkYmFjZWdpa2xucHJ0dnh6e31/gYOFhoiKjI6QkZOVl5mbnJ2cmpiWlJORj42LiYeGhIKAfn17eXd1c3JwbmxqaWdlY2JjZWdpa2xucHJ0dnd5e31/gIKEhoiJi42PkZKUlpiam52cmpiWlJORj42LioiGhIKBf317eXh2dHJxb21raWhmZGNkZWdpa2xucHJ0dXd5e3x+gIKDhYeJi4yOkJKTlZeZmpybmpiWlJORj42MioiGhIOBf358enh3dXNxcG5samlnZWRkZmdpa2xucHJzdXd5enx+gIGDhYaIioyNj5GSlJaXmZubmZiWlJKRj42MioiHhYOBgH58e3l3dnRycG9ta2poZmVkZmdpa21ucHJzdXd4enx9f4GChIaHiYuMjpCRk5WWmJqbmZeWlJKRj42MioiHhYOCgH59e3l4dnVzcXBubGtpZ2ZlZmhpa21ucHJzdXZ4ent9f4CChIWHiIqMjY+RkpSVl5mamZeWlJKRj42MiomHhYSCgH99fHp4d3V0cnBvbWxqaGdlZmhpa21ucHJzdXZ4ent9foCCg4WGiImLjY6QkZOVlpiZmZeVlJKRj42MiomHhoSCgX9+fHt5d3Z0c3Fwbm1raWhmZ2hqa21ucHFzdXZ4eXt8foCBg4SGh4mKjI2PkJKUlZeYmJeVlJKRj46MiomHhoSDgYB+fXt6eHd1c3Jwb21samlnZ2hqa21ucHFzdXZ4eXt8fn+BgoSFh4iKi42OkJGTlJaXmJeVlJKQj42MiomIhoWDgoB/fXx6eXd2dHNxcG5ta2poZ2lqbG1vcHJzdHZ3eXp8fX+AgoOFhoiJioyNj5CSk5WWl5aVk5KQj42Mi4mIhoWDgoB/fXx7eXh2dXNycW9ubGtpaGlqbG1vcHJzdHZ3eXp8fX6AgYOEhoeIiouNjo+RkpSVlpaVk5KQj42Mi4mIhoWEgoF/fn17enh3dnRzcXBvbWxqaWlrbG1vcHJzdHZ3eXp7fX6AgYKEhYaIiYuMjY+QkZOUlZaUk5GQj42Mi4mIhoWEgoGAfn18enl4dnVzcnFvbm1ramprbG5vcHJzdHZ3eHp7fH5/gYKDhYaHiYqLjY6PkJKTlJWUk5GQj42Mi4mIh4WEg4GAf318e3l4d3V0c3Jwb25sa2prbW5vcXJzdHZ3eHp7fH5/gIGDhIWHiImKjI2OkJGSk5SUkpGQjo2Mi4mIh4WEg4KAf358e3p5d3Z1dHJxcG9tbGtsbW5vcXJzdHZ3eHp7fH1/gIGChIWGh4mKi4yOj5CRkpSTkpGPjo2MiomIh4aEg4KBf359fHp5eHd2dHNycW9ubWxsbW5wcXJzdXZ3eHl7fH1+gIGCg4SGh4iJioyNjo+QkpOTkpCPjo2MiomIh4aEg4KBgH59fHt6eXd2dXRzcXBvbm1sbm9wcXJzdXZ3eHl7fH1+f4CCg4SFhoeJiouMjY6PkZKSkZCPjo2LiomIh4aFg4KBgH9+fHt6eXh3dnVzcnFwb25tbm9wcXJ0dXZ3eHl6fH1+f4CBgoOFhoeIiYqLjI2PkJGSkZCPjoyLiomIh4aFhIKBgH9+fXx7enh3dnV0c3JxcG9ubm9wcnN0dXZ3eHl6e31+f4CBgoOEhYaHiImLjI2Oj5CRkY+OjYyLiomIh4aFhIOBgH9+fXx7enl4d3Z1dHNycXBvb3BxcnN0dXZ3eHl6e3x9foCBgoOEhYaHiImKi4yNjo+QkI+OjYyLiomIh4aFhIOCgYB/fn18e3p5eHZ1dHNycXBvb3BxcnN0dXZ3eHl6e3x9fn+AgYKDhIWGh4iJiouMjY6PkI+OjYyLiomIh4aFhIOCgYB/fn18e3p5eHd2dXRzcnFwcHFycnN0dXZ3eHl6e3x9fn+AgYKDhIWGh4iJiYqLjI2Oj46NjIuKiYmIh4aFhIOCgYB/fn18e3p6eXh3dnV0c3JxcHFyc3R1dnd3eHl6e3x9fn+AgYKCg4SFhoeIiYqLi4yNjo6NjIuKiYiHh4aFhIOCgYB/fn59fHt6eXh3d3Z1dHNycXFyc3R1dnd4eXl6e3x9fn+AgIGCg4SFhoaHiImKi4yMjY2MjIuKiYiHhoaFhIOCgYCAf359fHt7enl4d3Z2dXRzcnJzdHR1dnd4eXl6e3x9fn5/gIGCg4OEhYaHiIiJiouMjI2Mi4qKiYiHhoWFhIOCgYGAf359fXx7enl5eHd2dXV0c3NzdHV2dnd4eXp6e3x9fn5/gIGBgoOEhYWGh4iIiYqLjIyMi4qJiIiHhoWFhIOCgoGAf35+fXx7e3p5eHh3dnV1dHN0dHV2d3d4eXp6e3x9fX5/gICBgoODhIWGhoeIiImKi4uLioqJiIeHhoWEhIOCgoGAf39+fX18e3p6eXh4d3Z1dXR0dXZ2d3h4eXp7e3x9fX5/gICBgoKDhISFhoaHiIiJiouLiomJiIeGhoWEhIOCgoGAgH9+fn18fHt6enl4eHd2dnV1dXZ3d3h5eXp7e3x9fX5/f4CBgYKDg4SFhYaGh4iIiYqKiYmIh4eGhoWEhIOCgoGAgH9+fn19fHt7enl5eHh3dnZ1dnZ3eHh5enp7e3x9fX5/f4CAgYKCg4OEhYWGhoeIiImJiYiIh4aGhYWEg4OCgoGAgH9/fn19fHx7e3p5eXh4d3d2dnd4eHl5enp7fHx9fX5/f4CAgYGCgoOEhIWFhoaHiIiJiIiHh4aGhYSEg4OCgoGBgH9/fn59fXx8e3t6eXl4eHd3d3d4eXl6ent7fHx9fX5+f4CAgYGCgoODhISFhYaGh4eIiIeHhoaFhYSEg4OCgoGBgIB/f35+fX18fHt7enp5eXh4d3h4eXl6ent7fHx9fX5+f3+AgIGBgoKDg4SEhYWGhoeHh4eGhoWFhISDg4KCgoGBgIB/f35+fX18fHx7e3p6eXl4eHh5eXp6e3t8fH19fX5+f3+AgIGBgYKCg4OEhIWFhYaGh4aGhYWEhISDg4KCgYGBgIB/f35+fn19fHx8e3t6enp5eXl5enp7e3x8fH19fn5+f3+AgICBgYKCgoODhISEhYWFhoaFhYSEhIODg4KCgYGBgIB/f39+fn59fXx8fHt7e3p6enp6ent7e3x8fX19fn5+f3+AgICBgYGCgoKDg4OEhISFhYWFhISEg4ODgoKCgYGBgICAf39/fn5+fX19fHx8e3t7enp7e3t8fHx9fX1+fn5+f39/gICAgYGBgoKCg4ODg4SEhISEhISDg4OCgoKBgYGAgICAf39/fn5+fn19fXx8fHx7e3t7e3x8fH19fX1+fn5/f39/gICAgIGBgYKCgoKDg4ODhISEg4ODg4KCgoGBgYGAgICAf39/f35+fn59fX19fHx8fHx8fHx8fX19fX5+fn5/f39/gICAgICBgYGBgoKCgoKDg4ODg4OCgoKCgYGBgYGAgICAf39/f39+fn5+fn19fX19fHx8fX19fX1+fn5+fn9/f39/gICAgICAgYGBgYGBgoKCgoKCgoKCgoGBgYGBgYCAgICAgH9/f39/f35+fn5+fn19fX19fX19fn5+fn5+f39/f39/f4CAgICAgICBgYGBgYGBgoKCgoGBgYGBgYGAgICAgICAgH9/f39/f39/fn5+fn5+fn5+fn5+fn5+fn9/f39/f39/f4CAgICAgICAgICBgYGBgYGBgYGBgYGAgICAgICAgICAgH9/f39/f39/f39/f39/fn5+fn5/f39/f39/f39/f39/f4CAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgH9/f39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f4CAgICAgICAgICAgICAgICAgICAgICAgICAgICA");
-                    }
-                );
-            }
-            */
-
-            function playAudio(url) {
-                var audio = new Audio(url);
-                audio.play();
-            }
-            function executeWithMinimumDelay(activity, minimumDelay, postActivity) {
-                var minimumDelay = new Promise(
-                    (resolve, reject) => {
-                        setTimeout(() => {resolve()}, minimumDelay);
-                    }
-                );
-                Promise.all([activity, minimumDelay]).then(
-                    (result) => {
-                        if (postActivity) {
-                            postActivity(result[0]);
-                        }
-                    }
-                )
-            }
-        </script>
-        <script>
-            var monster_list = {
-            }
-            var weapon_list = {
-                "madPancake": {
-                    "spriteSheet": "madPancakeSpriteSheet.png",
-                    "occurrence": [],
-                    "treasure": {
-                        "min": 0,
-                        "max": 3
-                    },
-                    "idleMotion": {
-                        "motionSequence": [
+                    /*
+                    addToSpriteLoadQueue(
+                        "name", "Untitled.png", 0, 150, 150,
+                        [
                             {
                                 "frame": 0,
+                                "durationMs": 700
+                            },
+                            {
+                                "frame": 1,
+                                "durationMs": 200
+                            },
+                            {
+                                "frame": 2,
+                                "durationMs": 400
+                            },
+                            {
+                                "frame": 3,
                                 "durationMs": 100
                             }
                         ]
+                    );
+                    */
+                    //
+                    new Phaser.Game(
+                        {
+                            type: Phaser.CANVAS,
+                            parent: "phaser-target",
+                            backgroundColor: '#125555',
+                            width: 300,
+                            height: 300,
+                            scene: {
+                                preload: preload,
+                                create: create,
+                                update: update
+                            }
+                        }
+                    );
+                }
+            );
+            function create() {
+                $("#addFrameSetButton").prop("disabled", false);
+            }
+            function addSprite() {
+                var spriteName = $("#spriteName").val();
+                var spriteSheet = $("#spriteSheetUrl").val();
+                var spriteDepth = parseInt($("#spriteDepth").val());
+                var spriteXPosition = parseInt($("#spriteXPosition").val());
+                var spriteYPosition = parseInt($("#spriteYPosition").val());
+                var spriteMotionSequence = JSON.parse($("#spriteMotionSequence").val());
+                if (spriteName in sprites) {
+                    console.log("ZZZ keys - " + Object.keys(sprites[spriteName]))
+                    sprites[spriteName].obj.destroy();
+                    delete sprites[spriteName];
+                }
+                addToSpriteLoadQueue(
+                    spriteName, spriteSheet, spriteDepth,
+                    spriteXPosition, spriteYPosition, spriteMotionSequence);
+            }
+            function update() {
+                var nextNewFrame;
+                while (nextNewFrame = spriteLoadQueue.pop()) {
+                    nextNewFrame.startTimeMs = Date.now();
+                    if (loadedSpriteSheets.indexOf(nextNewFrame.spriteSheet) !== -1) {
+                        sprites[nextNewFrame.id] = nextNewFrame;
+                        nextNewFrame.obj = this.add.sprite(
+                            nextNewFrame.xPosition, nextNewFrame.yPosition,
+                            nextNewFrame.spriteSheet);
+                        nextNewFrame.obj.setFrame(nextNewFrame.motionSequence[0].frame);
+                        nextNewFrame.obj.setDepth(nextNewFrame.depth);
+                    } else {
+                        var localNextNewFrame = nextNewFrame;
+                        this.load.once(
+                            Phaser.Loader.Events.FILE_COMPLETE,
+                            (a, b, c) => {
+                                if (a === localNextNewFrame.spriteSheet && b === "spritesheet") {
+                                    loadedSpriteSheets.push(localNextNewFrame.spriteSheet);
+                                    localNextNewFrame.obj = this.add.sprite(
+                                        localNextNewFrame.xPosition, localNextNewFrame.yPosition,
+                                        localNextNewFrame.spriteSheet);
+                                    sprites[localNextNewFrame.id] = localNextNewFrame;
+                                    localNextNewFrame.obj.setFrame(localNextNewFrame.motionSequence[0].frame);
+                                    localNextNewFrame.obj.setDepth(localNextNewFrame.depth);
+                                }
+                            }
+                        );
+                        this.load.spritesheet(
+                            nextNewFrame.spriteSheet, nextNewFrame.spriteSheet,
+                            {frameWidth: 200, frameHeight: 200}
+                        );
+                        this.load.start();
+                        //
                     }
+                    //
+                }
+                var spriteNames = Object.keys(sprites);
+                for (var i = 0; i < spriteNames.length; i++) {
+                    var nextSpriteName = spriteNames[i];
+                    var nextSprite = sprites[nextSpriteName];
+                    //
+                    var currentTimeMs = Date.now();
+                    var elapsedTimeMs = (currentTimeMs - nextSprite.startTimeMs);
+                    var totalMotionSequenceTimeMs = 0;
+                    nextSprite.motionSequence.forEach(
+                        (a) => {
+                            totalMotionSequenceTimeMs += a.durationMs;
+                        }
+                    );
+                    var frameOffsetMs = elapsedTimeMs%totalMotionSequenceTimeMs;
+                    var selectedFrame = 0;
+                    var accumulatedMs = 0;
+                    nextSprite.motionSequence.forEach(
+                        (a) => {
+                            accumulatedMs += a.durationMs;
+                            if (accumulatedMs < frameOffsetMs) {
+                                selectedFrame++;
+                            }
+                        }
+                    );
+                    nextSprite.obj.setFrame(nextSprite.motionSequence[selectedFrame].frame);
                 }
             }
-            var item_list = {
-
+            function printSpriteState() {
+                console.log("<!-- SPRITE STATE --->");
+                console.log(JSON.stringify(sprites, null, 2));
+                console.log("<!-- ------------ --->");
             }
-            //console.log("Hello, again!");
+            //function playAudio(url) {
+            //    var audio = new Audio(url);
+            //    audio.play();
+            //}
+            //function executeWithMinimumDelay(activity, minimumDelay, postActivity) {
+            //    var minimumDelay = new Promise(
+            //        (resolve, reject) => {
+            //            setTimeout(() => {resolve()}, minimumDelay);
+            //        }
+            //    );
+            //    Promise.all([activity, minimumDelay]).then(
+            //        (result) => {
+            //            if (postActivity) {
+            //                postActivity(result[0]);
+            //            }
+            //        }
+            //    )
+            //}
         </script>
     </head>
     <body>
-        Hello!
         <div>
             <div id="phaser-target" />
         </div>
-        Goodbye!
         <br />
-        <img src="Untitled.png" />
+        Sprite Name: <input type="text" id="spriteName" value="sample1" /> <br />
+        Sprite Sheet Url: <input type="text" id="spriteSheetUrl" value="Untitled.png" /> <br />
+        Sprite Depth: <input type="text" id="spriteDepth" value="0" /> <br />
+        Sprite X-Position: <input type="text" id="spriteXPosition" value="150" /> <br />
+        Sprite Y-Position: <input type="text" id="spriteYPosition" value="150" /> <br />
+        Sprite Motion Sequence: <br />
+        <textarea id="spriteMotionSequence" cols="80" rows="80">
+            [
+                {
+                    "frame": 0,
+                    "durationMs": 700
+                },
+                {
+                    "frame": 1,
+                    "durationMs": 200
+                },
+                {
+                    "frame": 2,
+                    "durationMs": 400
+                },
+                {
+                    "frame": 3,
+                    "durationMs": 100
+                }
+            ]
+        </textarea>
+        <br />
+        <input type="button" id="addFrameSetButton"
+            value="Add Frame Set" disabled="true" onclick="addSprite();" />
+        <br />
+        <input type="button" id="printSpriteState"
+            value="Print Sprite State" onclick="printSpriteState();" />
     </body>
 </html>
