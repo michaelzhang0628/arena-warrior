@@ -6,7 +6,7 @@
             var spriteLoadQueue = [];
             var loadedSpriteSheets = [];
             var sprites = {};
-            function addToSpriteLoadQueue(id, spriteSheet, depth, xPosition, yPosition, motionSequence) {
+            function addToSpriteLoadQueue(id, spriteSheet, depth, xPosition, yPosition, motionSequence, cycles) {
                 spriteLoadQueue.push(
                     {
                         "id": id,
@@ -14,7 +14,8 @@
                         "depth": depth,
                         "xPosition": xPosition,
                         "yPosition": yPosition,
-                        "motionSequence": motionSequence
+                        "motionSequence": motionSequence,
+                        "cycles": cycles
                     }
                 );
             }
@@ -72,14 +73,16 @@
                 var spriteXPosition = parseInt($("#spriteXPosition").val());
                 var spriteYPosition = parseInt($("#spriteYPosition").val());
                 var spriteMotionSequence = JSON.parse($("#spriteMotionSequence").val());
+                var spriteCycles = JSON.parse($("#spriteCycles").val());
                 if (spriteName in sprites) {
-                    console.log("ZZZ keys - " + Object.keys(sprites[spriteName]))
+                    //console.log("ZZZ keys - " + Object.keys(sprites[spriteName]))
                     sprites[spriteName].obj.destroy();
                     delete sprites[spriteName];
                 }
                 addToSpriteLoadQueue(
                     spriteName, spriteSheet, spriteDepth,
-                    spriteXPosition, spriteYPosition, spriteMotionSequence);
+                    spriteXPosition, spriteYPosition,
+                    spriteMotionSequence, spriteCycles);
             }
             function update() {
                 var nextNewFrame;
@@ -130,18 +133,24 @@
                             totalMotionSequenceTimeMs += a.durationMs;
                         }
                     );
-                    var frameOffsetMs = elapsedTimeMs%totalMotionSequenceTimeMs;
-                    var selectedFrame = 0;
-                    var accumulatedMs = 0;
-                    nextSprite.motionSequence.forEach(
-                        (a) => {
-                            accumulatedMs += a.durationMs;
-                            if (accumulatedMs < frameOffsetMs) {
-                                selectedFrame++;
+                    if (!nextSprite.cycles || nextSprite.cycles < 0
+                        || nextSprite.cycles >= ((1.0)*elapsedTimeMs)/totalMotionSequenceTimeMs) {
+                        var frameOffsetMs = elapsedTimeMs%totalMotionSequenceTimeMs;
+                        var selectedFrame = 0;
+                        var accumulatedMs = 0;
+                        nextSprite.motionSequence.forEach(
+                            (a) => {
+                                accumulatedMs += a.durationMs;
+                                if (accumulatedMs < frameOffsetMs) {
+                                    selectedFrame++;
+                                }
                             }
-                        }
-                    );
-                    nextSprite.obj.setFrame(nextSprite.motionSequence[selectedFrame].frame);
+                        );
+                        nextSprite.obj.setFrame(nextSprite.motionSequence[selectedFrame].frame);
+                    } else {
+                        sprites[nextSpriteName].obj.destroy();
+                        delete sprites[nextSpriteName];
+                    }
                 }
             }
             function printSpriteState() {
@@ -170,41 +179,50 @@
         </script>
     </head>
     <body>
-        <div>
-            <div id="phaser-target" />
-        </div>
-        <br />
-        Sprite Name: <input type="text" id="spriteName" value="sample1" /> <br />
-        Sprite Sheet Url: <input type="text" id="spriteSheetUrl" value="Untitled.png" /> <br />
-        Sprite Depth: <input type="text" id="spriteDepth" value="0" /> <br />
-        Sprite X-Position: <input type="text" id="spriteXPosition" value="150" /> <br />
-        Sprite Y-Position: <input type="text" id="spriteYPosition" value="150" /> <br />
-        Sprite Motion Sequence: <br />
-        <textarea id="spriteMotionSequence" cols="80" rows="80">
-            [
-                {
-                    "frame": 0,
-                    "durationMs": 700
-                },
-                {
-                    "frame": 1,
-                    "durationMs": 200
-                },
-                {
-                    "frame": 2,
-                    "durationMs": 400
-                },
-                {
-                    "frame": 3,
-                    "durationMs": 100
-                }
-            ]
-        </textarea>
-        <br />
-        <input type="button" id="addFrameSetButton"
-            value="Add Frame Set" disabled="true" onclick="addSprite();" />
-        <br />
-        <input type="button" id="printSpriteState"
-            value="Print Sprite State" onclick="printSpriteState();" />
+        <table>
+        <tr>
+        <td>
+            <div>
+                <div id="phaser-target" />
+            </div>
+            <br />
+            Sprite Name: <input type="text" id="spriteName" value="sample1" /> <br />
+            Sprite Sheet Url: <input type="text" id="spriteSheetUrl" value="Untitled.png" /> <br />
+            Sprite Depth: <input type="text" id="spriteDepth" value="0" /> <br />
+            Sprite X-Position: <input type="text" id="spriteXPosition" value="150" /> <br />
+            Sprite Y-Position: <input type="text" id="spriteYPosition" value="150" /> <br />
+            Sprite Cycles: <input type="text" id="spriteCycles" value="-1" /> <br />
+            <br />
+            <input type="button" id="addFrameSetButton"
+                value="Add Frame Set" disabled="true" onclick="addSprite();" />
+            <br />
+            <input type="button" id="printSpriteState"
+                value="Print Sprite State" onclick="printSpriteState();" />
+        </td>
+        <td>
+            Sprite Motion Sequence: <br />
+            <textarea id="spriteMotionSequence" cols="50" rows="30">
+                [
+                    {
+                        "frame": 0,
+                        "durationMs": 700
+                    },
+                    {
+                        "frame": 1,
+                        "durationMs": 200
+                    },
+                    {
+                        "frame": 2,
+                        "durationMs": 400
+                    },
+                    {
+                        "frame": 3,
+                        "durationMs": 100
+                    }
+                ]
+            </textarea>
+        </td>
+        </tr>
+        </table>
     </body>
 </html>
