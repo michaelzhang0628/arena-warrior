@@ -1,0 +1,60 @@
+<html>
+    <head>
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.min.js"></script>
+        <script src="./index_gameplay.js"></script>
+        <script src="./index_graphics.js"></script>
+        <script>
+            function preloadCanvas() {
+                addToSpriteLoadQueue(
+                    "name", "sword.png", 0, 150, 150,
+                    [
+                        {
+                            "frame": 0,
+                            "durationMs": 700
+                        },
+                        {
+                            "frame": 1,
+                            "durationMs": 200
+                        },
+                        {
+                            "frame": 2,
+                            "durationMs": 400
+                        }
+                    ],
+                    5
+                );
+            }
+            function createCanvas() {
+            }
+            function updateCanvas() {
+                var game = this;
+                updateSprites(game);
+            }
+            $(document).ready(
+                () => {
+                    //
+                    new Phaser.Game(
+                        {
+                            type: Phaser.CANVAS,
+                            parent: "phaser-target",
+                            backgroundColor: '#125555',
+                            width: 300,
+                            height: 300,
+                            scene: {
+                                preload: preloadCanvas,
+                                create: createCanvas,
+                                update: updateCanvas
+                            }
+                        }
+                    );
+                }
+            );
+        </script>
+    </head>
+    <body>
+        <div>
+            <div id="phaser-target" />
+        </div>        
+    </body>
+</html>
