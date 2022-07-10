@@ -16,11 +16,22 @@ function addToSpriteLoadQueue(id, spriteSheet, depth, xPosition, yPosition, moti
         }
     );
 }
+function removeSpriteLoadQueue(id) {
+    spriteLoadQueue.push(
+        {
+            "id": id,
+            "state": "remove"
+        }
+    );
+}
 function incorporateNewSprites(game) {
     var nextNewFrame;
     while (nextNewFrame = spriteLoadQueue.pop()) {
         nextNewFrame.startTimeMs = Date.now();
-        if (loadedSpriteSheets.indexOf(nextNewFrame.spriteSheet) !== -1) {
+        if (nextNewFrame.state === "remove" && sprites[nextNewFrame.id]) {
+            sprites[nextNewFrame.id].obj.destroy();
+            delete sprites[nextNewFrame.id];
+        } else if (loadedSpriteSheets.indexOf(nextNewFrame.spriteSheet) !== -1) {
             sprites[nextNewFrame.id] = nextNewFrame;
             nextNewFrame.obj = game.add.sprite(
                 nextNewFrame.xPosition, nextNewFrame.yPosition,

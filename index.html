@@ -7,7 +7,7 @@
         <script>
             function preloadCanvas() {
                 addToSpriteLoadQueue(
-                    "name", "sword.png", 0, 150, 150,
+                    "weapon", "sword.png", 0, 150, 150,
                     [
                         {
                             "frame": 0,
@@ -23,6 +23,12 @@
                         }
                     ],
                     5
+                );
+                setTimeout(
+                    function() {
+                        removeSpriteLoadQueue("weapon")
+                    },
+                    3000
                 );
             }
             function createCanvas() {
