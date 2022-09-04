@@ -2,9 +2,17 @@
     <head>
         <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
         <script src="https://cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.min.js"></script>
+        <script src="./index_combat.js"></script>
+        <script src="./index_display.js"></script>
         <script src="./index_gameplay.js"></script>
         <script src="./index_graphics.js"></script>
+        <script src="./index_hero.js"></script>
+        <script src="./index_inventory.js"></script>
+        <script src="./index_town.js"></script>
+        <script src="./index_utils.js"></script>
         <script>
+            var hero = null;
+            var monster = null;
             function preloadCanvas() {
                 addToSpriteLoadQueue(
                     "weapon", "sword.png", 0, 150, 150,
@@ -30,6 +38,10 @@
                     },
                     3000
                 );
+                setInterval(
+                    updateHeroDisplay,
+                    100
+                );
             }
             function createCanvas() {
             }
@@ -43,7 +55,7 @@
                     new Phaser.Game(
                         {
                             type: Phaser.CANVAS,
-                            parent: "phaser-target",
+                            parent: "phaser_target",
                             backgroundColor: '#125555',
                             width: 300,
                             height: 300,
@@ -54,13 +66,118 @@
                             }
                         }
                     );
+                    //
+                    resetGame();
                 }
             );
         </script>
+        <style>
+            div.horizontal {
+                display: inline-block;
+                width: 45%;
+            }
+            div.allHorizontal {
+                width: 100%;
+                display: table;
+                margin: 2px;
+            }
+            div.enterArena {
+                text-align: center;
+            }
+            span.changingValue {
+                float: right;
+            }
+        </style>
     </head>
     <body>
         <div>
-            <div id="phaser-target" />
-        </div>        
+            <hr />
+            <div id="phaser_target" class="enterArena"/>
+        </div>
+        <div>
+            <div id="monster_pane">
+                <hr />
+                <div>Monster: <span id="monster_name"></span></div>
+                <div>Monster Health: <span id="monster_health"></span></div>
+                <div><input id="button_attack" type="button" value="Attack"/></div>
+                <div><input id="button_heal" type="button" value="Heal"/></div>
+                <div><input id="button_escape" type="button" value="Escape"/></div>
+            </div>
+            <div id="hero_pane">
+                <hr />
+                <div>
+                    <div class="horizontal">
+                        Rank: <span id="hero_rank" class="changingValue"></span>
+                    </div>
+                    <div class="horizontal">
+                        | Gold: <span id="hero_gold" class="changingValue"></span>
+                    </div>
+                </div>
+                <div>
+                    <div class="horizontal">
+                        Weapon: <span id="hero_weapon" class="changingValue"></span>
+                    </div>
+                    <div class="horizontal">
+                        | Health: <span id="hero_health" class="changingValue"></span>
+                    </div>
+                </div>
+                <div>
+                    <div class="horizontal">
+                        Armor: <span id="hero_armor" class="changingValue"></span>
+                    </div>
+                    <div class="horizontal">
+                        | Healing Potions: <span id="hero_healing_potions" class="changingValue"></span>
+                    </div>
+                </div>
+                <div>
+                    <div class="horizontal">
+                        Escape Portals: <span id="hero_escape_portals" class="changingValue"></span>
+                    </div>
+                </div>
+                <hr />
+            </div>
+            <div id="town_pane">
+                <div class="enterArena"><button>Enter Arena To Fight!</button></div>
+                <hr />
+                <div class="allHorizontal">
+                    Train:
+                    <span class="changingValue">
+                        <button id="button_train" onclick="purchaseLevelUp()"></button>
+                    </span>
+                </div>
+                <div class="allHorizontal">
+                    Weapon:
+                    <span class="changingValue">
+                        <button id="button_buy_weapon" onclick="purchaseWeapon()"></button>
+                    </span>
+                </div>
+                <div class="allHorizontal">
+                    Armor:
+                    <span class="changingValue">
+                        <button id="button_buy_armor" onclick="purchaseArmor()"></button>
+                    </span>
+                </div>
+                <div class="allHorizontal">
+                    Healing Potion:
+                    <span class="changingValue">
+                        <button id="button_buy_potion" onclick="purchaseHealingPotion()"></button>
+                    </span>
+                </div>
+                <div class="allHorizontal">
+                    Escape Portal:
+                    <span class="changingValue">
+                        <button id="button_buy_portal" onclick="purchaseEscapePortal()"></button>
+                    </span>
+                </div>
+                <div class="allHorizontal">
+                    Restart:
+                    <span class="changingValue">
+                        <input type="checkbox" id="checkbox_restart">I'm sure</input>
+                        <button id="button_restart" onclick="restartWithCheck()">Restart</button>
+                    </span>
+                </div>
+                <hr />
+            </div>
+        </div>
     </body>
 </html>
