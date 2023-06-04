@@ -9,6 +9,7 @@ function restartWithCheck() {
 function resetGame() {
     hero = constructStarterHero();
     monster = null;
+    removeSpriteLoadQueue("monster");
     updateOverallDisplay();
 }
 

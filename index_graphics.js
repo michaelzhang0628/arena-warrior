@@ -27,11 +27,15 @@ function removeSpriteLoadQueue(id) {
 function incorporateNewSprites(game) {
     var nextNewFrame;
     while (nextNewFrame = spriteLoadQueue.pop()) {
+        console.log("ZZZ LOADING SPRITE (nextNewFrame = " + nextNewFrame.id + ")");
         nextNewFrame.startTimeMs = Date.now();
-        if (nextNewFrame.state === "remove" && sprites[nextNewFrame.id]) {
-            sprites[nextNewFrame.id].obj.destroy();
-            delete sprites[nextNewFrame.id];
+        if (nextNewFrame.state === "remove") {
+            if (sprites[nextNewFrame.id]) {
+                sprites[nextNewFrame.id].obj.destroy();
+                delete sprites[nextNewFrame.id];
+            }
         } else if (loadedSpriteSheets.indexOf(nextNewFrame.spriteSheet) !== -1) {
+            console.log("ZZZ LOADING SPRITE (PREEXISTING)");
             sprites[nextNewFrame.id] = nextNewFrame;
             nextNewFrame.obj = game.add.sprite(
                 nextNewFrame.xPosition, nextNewFrame.yPosition,
@@ -39,6 +43,7 @@ function incorporateNewSprites(game) {
             nextNewFrame.obj.setFrame(nextNewFrame.motionSequence[0].frame);
             nextNewFrame.obj.setDepth(nextNewFrame.depth);
         } else {
+            console.log("ZZZ LOADING SPRITE (CREATING)");
             var localNextNewFrame = nextNewFrame;
             game.load.once(
                 Phaser.Loader.Events.FILE_COMPLETE,

@@ -2,7 +2,22 @@
 var WEAPONS = [
     {
         label: "Sword",
-        cost: 0
+        cost: 0,
+        frames: [
+            {
+                "frame": 0,
+                "durationMs": 200
+            },
+            {
+                "frame": 1,
+                "durationMs": 200
+            },
+            {
+                "frame": 2,
+                "durationMs": 200
+            }
+        ],
+        spriteSheet: "sword.png"
     },
     {
         label: "Ninja Stars",
