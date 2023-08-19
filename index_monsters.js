@@ -1,6 +1,7 @@
 var MONSTERS = [
     {
         "name": "Bruh",
+        "armorRating": 10,
         "occurrence": {
             0: 3,
             1: 3,

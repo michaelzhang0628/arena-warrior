@@ -19,6 +19,8 @@ function updateCombatDisplay() {
     if (isCombatActive()) {
         getEle("arena_pane").style.display = 'block';
         getEle("monster_pane").style.display = 'block';
+        getEle("monster_name").innerHTML = monster.name;
+        getEle("monster_health").innerHTML = monster.currentHealth;
     } else {
         getEle("arena_pane").style.display = 'none';
         getEle("monster_pane").style.display = 'none';
